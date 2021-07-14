@@ -164,6 +164,7 @@ class Loader(object):
         # load the lmdb if we can find it
         lmdb_loc = os.path.join(os.environ['IMAGENET'],'ILSVRC-%s.lmdb'%mode)
         ds = td.LMDBData(lmdb_loc, shuffle=False)
+        if shuffle:
         ds = td.LocallyShuffleData(ds, cache)
         ds = td.PrefetchData(ds, 5000, 1)
         ds = td.LMDBDataPoint(ds)
