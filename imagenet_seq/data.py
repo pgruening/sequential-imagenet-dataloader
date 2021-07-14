@@ -162,8 +162,8 @@ class Loader(object):
         imagenet_augmentors = fbresnet_augmentor(mode == 'train')
 
         # load the lmdb if we can find it
-        lmdb_loc = os.path.join(os.environ['IMAGENET'],'ILSVRC-%s.lmdb'%mode)
-        ds = td.LMDBSerializer.load(lmdb_loc, shuffle=False)
+        ds = td.LMDBData(lmdb_loc, shuffle=False)
+        if shuffle:
         ds = td.LocallyShuffleData(ds, cache)
         ds = td.PrefetchData(ds, 5000, 1)
         ds = td.MapDataComponent(ds, lambda x: cv2.imdecode(x, cv2.IMREAD_COLOR), 0)
