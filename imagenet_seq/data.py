@@ -10,16 +10,19 @@ import numpy as np
 import tensorpack.dataflow as td
 from tensorpack import imgaug
 from tensorpack.dataflow import (AugmentImageComponent, PrefetchDataZMQ,
-                                BatchData, MultiThreadMapData)
+                                 BatchData, MultiThreadMapData)
 
 #####################################################################################################
 # copied from: https://github.com/ppwwyyxx/tensorpack/blob/master/examples/ResNet/imagenet_utils.py #
 #####################################################################################################
+
+
 class GoogleNetResize(imgaug.ImageAugmentor):
     """
     crop 8%~100% of the original image
     See `Going Deeper with Convolutions` by Google.
     """
+
     def __init__(self, crop_area_fraction=0.08,
                  aspect_ratio_low=0.75, aspect_ratio_high=1.333,
                  target_shape=224):
@@ -30,7 +33,8 @@ class GoogleNetResize(imgaug.ImageAugmentor):
         area = h * w
         for _ in range(10):
             targetArea = self.rng.uniform(self.crop_area_fraction, 1.0) * area
-            aspectR = self.rng.uniform(self.aspect_ratio_low, self.aspect_ratio_high)
+            aspectR = self.rng.uniform(
+                self.aspect_ratio_low, self.aspect_ratio_high)
             ww = int(np.sqrt(targetArea * aspectR) + 0.5)
             hh = int(np.sqrt(targetArea / aspectR) + 0.5)
             if self.rng.uniform() < 0.5:
@@ -39,9 +43,11 @@ class GoogleNetResize(imgaug.ImageAugmentor):
                 x1 = 0 if w == ww else self.rng.randint(0, w - ww)
                 y1 = 0 if h == hh else self.rng.randint(0, h - hh)
                 out = img[y1:y1 + hh, x1:x1 + ww]
-                out = cv2.resize(out, (self.target_shape, self.target_shape), interpolation=cv2.INTER_CUBIC)
+                out = cv2.resize(
+                    out, (self.target_shape, self.target_shape), interpolation=cv2.INTER_CUBIC)
                 return out
-        out = imgaug.ResizeShortestEdge(self.target_shape, interp=cv2.INTER_CUBIC).augment(img)
+        out = imgaug.ResizeShortestEdge(
+            self.target_shape, interp=cv2.INTER_CUBIC).augment(img)
         out = imgaug.CenterCrop(self.target_shape).augment(out)
         return out
 
@@ -157,18 +163,20 @@ class Loader(object):
     """
 
     def __init__(self, mode, batch_size=256, shuffle=False, num_workers=25, cache=50000,
-            collate_fn=default_collate,  drop_last=False, cuda=False):
+                 collate_fn=default_collate, drop_last=False, cuda=False):
         # enumerate standard imagenet augmentors
         imagenet_augmentors = fbresnet_augmentor(mode == 'train')
 
         # load the lmdb if we can find it
-        lmdb_loc = os.path.join(os.environ['IMAGENET'],'ILSVRC-%s.lmdb'%mode)
+        lmdb_loc = os.path.join(
+            os.environ['IMAGENET'], 'ILSVRC-%s.lmdb' % mode)
         ds = td.LMDBData(lmdb_loc, shuffle=False)
         if shuffle:
-        ds = td.LocallyShuffleData(ds, cache)
+            ds = td.LocallyShuffleData(ds, cache)
         ds = td.PrefetchData(ds, 5000, 1)
         ds = td.LMDBDataPoint(ds)
-        ds = td.MapDataComponent(ds, lambda x: cv2.imdecode(x, cv2.IMREAD_COLOR), 0)
+        ds = td.MapDataComponent(
+            ds, lambda x: cv2.imdecode(x, cv2.IMREAD_COLOR), 0)
         ds = td.AugmentImageComponent(ds, imagenet_augmentors)
         ds = td.PrefetchDataZMQ(ds, num_workers)
         self.ds = td.BatchData(ds, batch_size)
@@ -185,7 +193,7 @@ class Loader(object):
                 # images come out as uint8, which are faster to copy onto the gpu
                 x = torch.ByteTensor(x).cuda()
                 y = torch.IntTensor(y).cuda()
-                # but once they're on the gpu, we'll need them in 
+                # but once they're on the gpu, we'll need them in
                 yield uint8_to_float(x), y.long()
             else:
                 yield uint8_to_float(torch.ByteTensor(x)), torch.IntTensor(y).long()
@@ -193,9 +201,11 @@ class Loader(object):
     def __len__(self):
         return self.ds.size()
 
+
 def uint8_to_float(x):
-    x = x.permute(0,3,1,2) # pytorch is (n,c,w,h)
-    return x.float()/128. - 1.
+    x = x.permute(0, 3, 1, 2)  # pytorch is (n,c,w,h)
+    return x.float() / 128. - 1.
+
 
 if __name__ == '__main__':
     from tqdm import tqdm
